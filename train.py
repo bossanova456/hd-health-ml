@@ -82,6 +82,7 @@ if __name__ == "__main__":
 
     df = load_training_data("./data/data_Q4_2024/", columns, dtype)
 
+    print("Splitting dataset...")
     X = df[columns[1:]]
     y = df['failure']
 
