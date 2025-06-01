@@ -11,7 +11,7 @@ def remove_outliers(dataframe, smart_columns, contamination=0.01):
 
     for model, group in df.groupby('model'):
         # Outlier detection
-        log(f"Fitting model for {model}", log_file)
+        print(f"Fitting model for {model}")
         iso_forest = IsolationForest(contamination=contamination, random_state=42)
         outliers = iso_forest.fit_predict(group[smart_columns])
 
@@ -29,7 +29,7 @@ def gaussian_df(dataframe, smart_columns, sigma, truncate):
     log_file = "gaussian.log"
     smoothed_df = dataframe.copy()
     for c in smart_columns:
-        log(f"Smoothing column: {c}", log_file)
+        print(f"Smoothing column: {c}")
         smoothed_df[c] = gaussian_filter1d(dataframe[c], sigma, axis=0, truncate=truncate, mode='nearest')
 
     return smoothed_df
@@ -45,15 +45,18 @@ def time_based_imputation(dataframe, smart_columns):
     log_file = "imputer.log"
     imputed_df = dataframe.copy()
 
-    log(f"NaN values before imputation: {imputed_df.isna().sum().sum()}", log_file)
+    print(f"NaN values before imputation: {imputed_df.isna().sum().sum()}")
 
     imputed_df = imputed_df.sort_values(['serial_number', 'date'])
 
     progress = 0
+    mod = 0
     total = imputed_df.shape[0]
 
     for serial, group in imputed_df.groupby('serial_number'):
-        log(f"Progress: {progress} / {total} - {progress / total * 100:.2f}%", log_file)
+        if mod % 10000 >= 0 or progress == 0:
+            print(f"Progress: {progress} / {total} - {progress / total * 100:.2f}%")
+            mod = mod % 10000
 
         # Only process drives with multiple records
         if len(group) > 1:
@@ -72,6 +75,7 @@ def time_based_imputation(dataframe, smart_columns):
                     imputed_df.loc[group.index, col] = imputed_df.loc[group.index, col].fillna(model_median)
 
         progress += group.shape[0]
+        mod += group.shape[0]
 
     log(f"NaN values after imputation: {imputed_df.isna().sum().sum()}", log_file)
 

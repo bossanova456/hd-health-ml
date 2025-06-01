@@ -21,24 +21,24 @@ def load_training_data(data_dir, columns, dtype):
     return df
 
 def run_pipeline(dataframe, smart_columns, model_name="model"):
-    log("Executing pipeline...")
+    print("Executing pipeline...")
     warnings.filterwarnings('ignore', category=RuntimeWarning)
 
     df = dataframe.copy()
 
-    log("Running imputation...")
+    print("Running imputation...")
     df = time_based_imputation(df, smart_columns)
     save_model(df, f"models/{model_name}_imputed.joblib")
 
-    log("Removing outliers...")
+    print("Removing outliers...")
     df = remove_outliers(df, smart_columns)
     save_model(df, f"models/{model_name}_outliers.joblib")
 
-    log("Smoothing dataset...")
+    print("Smoothing dataset...")
     df = gaussian_df(df, smart_columns, sigma=1.0, truncate=4.0)
     save_model(df, f"models/{model_name}_gaussian.joblib")
 
-    log("Finished pipeline...")
+    print("Finished pipeline...")
 
     return df
 
@@ -87,12 +87,12 @@ if __name__ == "__main__":
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
 
-    log("Processing training data...")
+    print("Processing training data...")
     X_train_processed = run_pipeline(X_train, smart_columns, "train")
 
-    log("Processing test data...")
+    print("Processing test data...")
     X_test_processed = run_pipeline(X_test, smart_columns, "test")
 
-    log("Processing complete")
+    print("Processing complete")
 
     exit(0)
