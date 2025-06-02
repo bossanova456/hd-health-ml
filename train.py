@@ -66,18 +66,18 @@ if __name__ == "__main__":
 
     dtype = {
         'failure': 'bool',
-        'smart_1_normalized': 'float32',
-        'smart_2_normalized': 'float32',
-        'smart_3_normalized': 'float32',
-        'smart_4_normalized': 'float32',
-        'smart_5_normalized': 'float32',
-        'smart_9_normalized': 'float32',
-        'smart_10_normalized': 'float32',
-        'smart_12_normalized': 'float32',
-        'smart_187_normalized': 'float32',
-        'smart_188_normalized': 'float32',
-        'smart_197_normalized': 'float32',
-        'smart_198_normalized': 'float32',
+        'smart_1_normalized': 'int8',
+        'smart_2_normalized': 'int8',
+        'smart_3_normalized': 'int8',
+        'smart_4_normalized': 'int8',
+        'smart_5_normalized': 'int8',
+        'smart_9_normalized': 'int8',
+        'smart_10_normalized': 'int8',
+        'smart_12_normalized': 'int8',
+        'smart_187_normalized': 'int8',
+        'smart_188_normalized': 'int8',
+        'smart_197_normalized': 'int8',
+        'smart_198_normalized': 'int8',
     }
 
     df = load_training_data("./data/data_Q4_2024/", columns, dtype)
