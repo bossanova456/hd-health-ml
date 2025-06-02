@@ -1,7 +1,7 @@
 import os, warnings
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from utils import log, save_model
+from utils import log, save_model, save_object
 from pipeline import time_based_imputation, remove_outliers, gaussian_df
 
 def load_training_data(data_dir, columns, dtype):
@@ -28,15 +28,15 @@ def run_pipeline(dataframe, smart_columns, model_name="model"):
 
     print("Running imputation...")
     df = time_based_imputation(df, smart_columns)
-    save_model(df, f"models/{model_name}_imputed.joblib")
+    save_object(df, f"models/{model_name}_imputed.joblib")
 
     print("Removing outliers...")
     df = remove_outliers(df, smart_columns)
-    save_model(df, f"models/{model_name}_outliers.joblib")
+    save_object(df, f"models/{model_name}_outliers.joblib")
 
     print("Smoothing dataset...")
     df = gaussian_df(df, smart_columns, sigma=1.0, truncate=4.0)
-    save_model(df, f"models/{model_name}_gaussian.joblib")
+    save_object(df, f"models/{model_name}_gaussian.joblib")
 
     print("Finished pipeline...")
 

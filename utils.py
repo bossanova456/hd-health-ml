@@ -1,4 +1,4 @@
-import os, joblib, json, subprocess
+import os, joblib, json, subprocess, pickle
 from datetime import datetime
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, precision_score, recall_score, f1_score
 
@@ -6,6 +6,8 @@ pwd = os.path.dirname(__file__)
 
 def log(message, file='log.txt'):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # Also print messages to stdout
+    print(f"[{timestamp}] - {message}")
     with open(os.path.join(pwd, file), 'a') as f:
         f.write(f"[{timestamp}] - {message}\n")
 
@@ -39,6 +41,19 @@ def load_model(filename):
     model = joblib.load(filename)
     print(f"Model loaded from {filename}")
     return model
+
+def save_object(obj, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, f)
+
+    log(f"Object saved as {filename}")
+
+def load_object(filename):
+    with open(filename, 'rb') as f:
+        obj = pickle.load(f)
+
+    log(f"Model loaded from {filename}")
+    return obj
 
 def calculate_metrics(y_true, x_true, model):
     y_predicted = model.predict(x_true)
