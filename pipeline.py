@@ -54,13 +54,9 @@ def time_based_imputation(dataframe, smart_columns):
     total = imputed_df.shape[0]
 
     print(f"Start time: {datetime.now().isoformat()}")
+    print_progress(0, total, prefix=f"{datetime.now().isoformat()} - {progress} / {total}", decimals=2)
 
     for serial, group in imputed_df.groupby('serial_number'):
-        if mod >= 10000 or progress == 0:
-            print_progress(mod, total, prefix=f"{datetime.now().isoformat()} - {progress} / {total}", decimals=2)
-            # print(f"Progress: {progress} / {total} - {progress / total * 100:.2f}%")
-            mod = mod % 10000
-
         # Only process drives with multiple records
         if len(group) > 1:
             for col in smart_columns:
@@ -76,6 +72,11 @@ def time_based_imputation(dataframe, smart_columns):
                     model = group['model'].iloc[0]
                     model_median = dataframe[dataframe['model'] == model][col].median()
                     imputed_df.loc[group.index, col] = imputed_df.loc[group.index, col].fillna(model_median)
+                    
+        if mod >= 10000 or progress == 0:
+            print_progress(mod, total, prefix=f"{datetime.now().isoformat()} - {progress} / {total}", decimals=2)
+            # print(f"Progress: {progress} / {total} - {progress / total * 100:.2f}%")
+            mod = mod % 10000
 
         progress += group.shape[0]
         mod += group.shape[0]
