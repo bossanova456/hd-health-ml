@@ -1,9 +1,9 @@
-import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, IsolationForest
 from scipy.ndimage import gaussian_filter1d
+from datetime import datetime
 
-from utils import log
+from utils import log, print_progress
 
 def remove_outliers(dataframe, smart_columns, contamination=0.01):
     log_file = "outliers.log"
@@ -53,9 +53,12 @@ def time_based_imputation(dataframe, smart_columns):
     mod = 0
     total = imputed_df.shape[0]
 
+    print(f"Start time: {datetime.now().isoformat()}")
+
     for serial, group in imputed_df.groupby('serial_number'):
         if mod >= 10000 or progress == 0:
-            print(f"Progress: {progress} / {total} - {progress / total * 100:.2f}%")
+            print_progress(mod, total, prefix=f"{datetime.now().isoformat()} - {progress} / {total}", decimals=2)
+            # print(f"Progress: {progress} / {total} - {progress / total * 100:.2f}%")
             mod = mod % 10000
 
         # Only process drives with multiple records

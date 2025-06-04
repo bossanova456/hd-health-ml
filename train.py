@@ -1,19 +1,20 @@
 import os, warnings
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from utils import log, save_model, save_object
+from utils import log, print_progress, save_model, save_object
 from pipeline import time_based_imputation, remove_outliers, gaussian_df
 
 def load_training_data(data_dir, columns, dtype):
     training_files = os.listdir(data_dir)
 
-
     df_list = []
     for file in training_files:
-        print(f"Loaded {len(df_list)} of {len(training_files)} files - {len(df_list) / len(training_files) * 100:.2f}%")
         df_file = pd.read_csv("./data/data_Q4_2024/" + file, low_memory=False, header=0, usecols=columns, dtype=dtype)
         df_file.describe()
         df_list.append(df_file)
+
+        print_progress(len(df_list), len(training_files),
+                       prefix=f"Loaded {len(df_list)} of {len(training_files)} files", decimals=2)
 
     df = pd.concat(df_list, ignore_index=True)
     # df.dropna(inplace=True)
@@ -66,18 +67,18 @@ if __name__ == "__main__":
 
     dtype = {
         'failure': 'bool',
-        'smart_1_normalized': 'int8',
-        'smart_2_normalized': 'int8',
-        'smart_3_normalized': 'int8',
-        'smart_4_normalized': 'int8',
-        'smart_5_normalized': 'int8',
-        'smart_9_normalized': 'int8',
-        'smart_10_normalized': 'int8',
-        'smart_12_normalized': 'int8',
-        'smart_187_normalized': 'int8',
-        'smart_188_normalized': 'int8',
-        'smart_197_normalized': 'int8',
-        'smart_198_normalized': 'int8',
+        'smart_1_normalized': 'float32',
+        'smart_2_normalized': 'float32',
+        'smart_3_normalized': 'float32',
+        'smart_4_normalized': 'float32',
+        'smart_5_normalized': 'float32',
+        'smart_9_normalized': 'float32',
+        'smart_10_normalized': 'float32',
+        'smart_12_normalized': 'float32',
+        'smart_187_normalized': 'float32',
+        'smart_188_normalized': 'float32',
+        'smart_197_normalized': 'float32',
+        'smart_198_normalized': 'float32',
     }
 
     df = load_training_data("./data/data_Q4_2024/", columns, dtype)
