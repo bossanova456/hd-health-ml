@@ -1,4 +1,5 @@
-import os, warnings
+import os, warnings, sys
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from utils import log, print_progress, save_model, save_object
@@ -43,7 +44,7 @@ def run_pipeline(dataframe, smart_columns, model_name="model"):
 
     return df
 
-if __name__ == "__main__":
+def main(args):
     columns = [
         "failure",
         "date",
@@ -91,10 +92,25 @@ if __name__ == "__main__":
 
     print("Processing training data...")
     X_train_processed = run_pipeline(X_train, smart_columns, "train")
+    save_object(X_train_processed, "models/X_train_processed.joblib")
+    save_object(y_train, "models/y_train_processed.joblib")
 
     print("Processing test data...")
     X_test_processed = run_pipeline(X_test, smart_columns, "test")
+    save_object(X_test_processed, "models/X_test_processed.joblib")
+    save_object(y_test, "models/y_test_processed.joblib")
 
     print("Processing complete")
 
-    exit(0)
+if __name__ == "__main__":
+    try:
+        main(args=sys.argv[1:])
+        exit(0)
+    except KeyboardInterrupt:
+        print()
+        print("Keyboard interrupt received - exiting...")
+        exit(0)
+    except Exception as e:
+        print()
+        print("Unexpected error:", e)
+        exit(1)

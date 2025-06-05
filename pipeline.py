@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, IsolationForest
 from scipy.ndimage import gaussian_filter1d
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from utils import log, print_progress
 
@@ -52,10 +52,11 @@ def time_based_imputation(dataframe, smart_columns):
     progress = 0
     mod = 0
     total = imputed_df.shape[0]
-    start = datetime.now().isoformat()
+    start = datetime.now()
+    cur_time = start
 
-    print(f"Start time: {start}")
-    print_progress(0, total, prefix=f"{start} - {progress} / {total}", decimals=2)
+    print(f"Start time: {start.strftime('%Y-%m-%d %H:%M:%S')}")
+    print_progress(0, total, prefix=f"{timedelta(0)} | {timedelta(0)} - {progress} / {total}", decimals=2) # Init progress bar
 
     for serial, group in imputed_df.groupby('serial_number'):
         # Only process drives with multiple records
@@ -78,8 +79,9 @@ def time_based_imputation(dataframe, smart_columns):
         mod += group.shape[0]
 
         if mod >= 10000 or progress == 0:
-            print_progress(mod, total, prefix=f"{datetime.now().isoformat()} - {progress} / {total}", decimals=2)
-            # print(f"Progress: {progress} / {total} - {progress / total * 100:.2f}%")
+            now = datetime.now()
+            print_progress(mod, total, prefix=f"{now - start} | {now - cur_time} - {progress} / {total}", decimals=2)
+            cur_time = now
             mod = mod % 10000
 
     log(f"NaN values after imputation: {imputed_df.isna().sum().sum()}", log_file)
