@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from cuml.ensemble import RandomForestClassifier
 from cuml.model_selection import train_test_split
-from cuml.metrics import accuracy_score, precision_score, f1_score, recall_score
+from cuml.metrics import accuracy_score, precision_recall_curve, f1_score
 from cuml.preprocessing import StandardScaler
 
 from utils import log, print_progress, save_model, save_object
@@ -77,8 +77,7 @@ def evaluate_model(model, X_test, y_test, scaler):
 
     # Calculate metrics
     accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, average='binary')
-    recall = recall_score(y_test, y_pred, average='binary')
+    precision, recall, _ = precision_recall_curve(y_test, y_pred)
     f1 = f1_score(y_test, y_pred, average='binary')
 
     # Balanced accuracy (manual calculation for cuML compatibility
