@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from cuml.ensemble import RandomForestClassifier
 from cuml.model_selection import train_test_split
-from cuml.metrics import accuracy_score, precision_recall_curve, f1_score
+from cuml.metrics import accuracy_score, precision_recall_curve
 from cuml.preprocessing import StandardScaler
 
 from utils import log, print_progress, save_model, save_object
