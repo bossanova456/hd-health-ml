@@ -78,7 +78,7 @@ def evaluate_model(model, X_test, y_test, scaler):
     # Calculate metrics
     accuracy = accuracy_score(y_test, y_pred)
     precision, recall, _ = precision_recall_curve(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred, average='binary')
+    # f1 = f1_score(y_test, y_pred, average='binary')
 
     # Balanced accuracy (manual calculation for cuML compatibility
     y_test_np = y_test.to_pandas().values if hasattr(y_test, 'to_pandas') else y_test
@@ -98,7 +98,7 @@ def evaluate_model(model, X_test, y_test, scaler):
         'balanced_accuracy': float(balanced_accuracy),
         'precision': float(precision),
         'recall': float(recall),
-        'f1': float(f1),
+        # 'f1': float(f1),
         'sensitivity': float(sensitivity),
         'specificity': float(specificity),
     }
