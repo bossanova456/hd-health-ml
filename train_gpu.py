@@ -153,8 +153,9 @@ def main(args):
 
     if os.path.exists("./models/model_gpu.joblib"):
         model = load_model("./models/model_gpu.joblib")
-        X_test = load_object("./models/X_test.joblib")
-        y_test = load_object("./models/y_test.joblib")
+        X_test_balanced = load_object("./models/X_test_balanced_gpu.joblib")
+        y_test_balanced = load_object("./models/y_test_balanced_gpu.joblib")
+        scaler = load_object("./models/scaler_gpu.joblib")
     else:
         df = load_training_data_gpu("./data/data_Q4_2024/", columns, dtype)
         df_processed = run_pipeline_gpu(df, smart_columns)
@@ -164,23 +165,28 @@ def main(args):
         feature_columns = [col for col in df_processed.columns if col in smart_columns]
         feature_columns.extend([col for col in df_processed.columns if 'critical' in col or 'sum' in col or 'high' in col])
 
-        print("Splitting dataset...")
-        X_train, X_test, y_train, y_test = train_test_split(df_processed[columns[1:]], df_processed['failure'], test_size=0.20, random_state=42)
+        X = df_processed[feature_columns]
+        y = df_processed['failure']
         del df_processed
 
         # Handle class imbalance
         print("Handling class imbalance...")
-        X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train, y_train, strategy='smote')
-        del X_train, y_train
+        X_balanced, y_balanced = handle_class_imbalance(X, y, strategy='smote')
+        del X, y
 
         print("Processing complete")
 
+        print("Splitting dataset...")
+        X_train_balanced, X_test_balanced, y_train_balanced, y_test_balanced = train_test_split(X_balanced, y_balanced, test_size=0.20, random_state=42)
+
+        print("Training model...")
         model = train_model_gpu(X_train_balanced, y_train_balanced, scaler)
         save_model(model, "models/model_gpu.joblib")
-        save_object(X_test, "models/X_test_gpu.joblib")
-        save_object(y_test, "models/y_test_gpu.joblib")
+        save_object(X_test_balanced, "models/X_test_balanced_gpu.joblib")
+        save_object(y_test_balanced, "models/y_test_balanced_gpu.joblib")
+        save_object(scaler, "models/scaler_gpu.joblib")
 
-    evaluate_model(model, X_test, y_test, scaler)
+    evaluate_model(model, X_test_balanced, y_test_balanced, scaler)
 
 if __name__ == "__main__":
     try:
