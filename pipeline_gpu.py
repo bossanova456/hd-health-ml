@@ -2,7 +2,7 @@ import cudf
 import pandas as pd
 import cupy as cp
 import numpy as np
-from imblearn.over_sampling import SMOTE as smote
+from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.combine import SMOTEENN
 from collections import Counter
