@@ -89,7 +89,7 @@ def create_features_gpu(dataframe):
     if 'smart_194_normalized' in df.columns:
         df['temp_critical'] = (df['smart_194_normalized'] < 50).astype('int8')
 
-
+    return df
 
 def evaluate_model(model, X_test, y_test, scaler):
     X_test_scaled = scaler.transform(X_test)

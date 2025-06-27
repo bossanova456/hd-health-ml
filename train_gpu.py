@@ -36,9 +36,11 @@ def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
         df[col] = df[col].fillna(0)
 
     # Create features
+    print("Creating features...")
     df = create_features_gpu(df)
 
     # Remove outliers
+    print("Removing outliers...")
     df = remove_outliers_gpu(df, smart_columns)
 
     return df
@@ -157,7 +159,7 @@ def main(args):
     feature_columns.extend([col for col in df.columns if 'critical' in col or 'sum' in col or 'high' in col])
 
     # Handle class imbalance
-    X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train[feature_columns], y_train, strategy='smote')
+    X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train_processed[feature_columns], y_train, strategy='smote')
 
     print("Processing test data...")
     X_test_processed = run_pipeline_gpu(X_test, smart_columns, "test")
