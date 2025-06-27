@@ -35,19 +35,13 @@ def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
     for col in smart_columns:
         df[col] = df[col].fillna(0)
 
-    # Append 'failure' to list of smart columns
-    required_cols = smart_columns + ['failure']
-
-    # Remove rows with missing 'failure' values
-    df_clean = df.dropna(subset=['failure'])
-
     # Create features
-    df_clean = create_features_gpu(df_clean)
+    df = create_features_gpu(df)
 
     # Remove outliers
-    df_clean = remove_outliers_gpu(df_clean, smart_columns)
+    df = remove_outliers_gpu(df, smart_columns)
 
-    return df_clean
+    return df
 
 def train_model_gpu(X_train, y_train, scaler, class_weights=None):
     # TODO: add switch to implement multiple models
