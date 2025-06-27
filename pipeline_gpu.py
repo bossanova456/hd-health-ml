@@ -44,7 +44,7 @@ def handle_class_imbalance(X, y, strategy='smote'):
     print("Converting X to pandas dataframe")
     X_pandas = X.to_pandas()
     print("Converting y to pandas dataframe")
-    y_pandas = pd.DataFrame(y.to_cupy())
+    y_pandas = pd.DataFrame(y.get())
 
     if strategy == 'smote':
         smote = SMOTE(random_state=42)
