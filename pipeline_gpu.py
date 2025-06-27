@@ -28,7 +28,7 @@ def remove_outliers_gpu(dataframe, smart_columns, iqr_multiplier=1.5):
 
 def handle_class_imbalance(X, y, strategy='smote'):
     print(f"Handling class imbalance: {strategy}")
-    print(f"Original class distribution: {Counter(y.to_pandas())}")
+    print(f"Original class distribution: {Counter(y)}")
 
     if strategy == 'class_weight':
         unique_classes = y.unique()
@@ -60,7 +60,7 @@ def handle_class_imbalance(X, y, strategy='smote'):
     # X_resampled = X_resampled.from_pandas(X_resampled)
     # y_resampled = y_resampled.from_pandas(y_resampled)
 
-    
+
 
     print(f"Resampled class distribution: {Counter(y_resampled)}")
 
