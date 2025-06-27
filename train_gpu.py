@@ -155,25 +155,27 @@ def main(args):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
 
-    # Handle class imbalance
-    X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train[smart_columns], y_train, strategy='smote')
-
     print("Processing training data...")
-    X_train_processed = run_pipeline_gpu(X_train_balanced, smart_columns, "train")
-    save_object(X_train_processed, "models/X_train_processed_gpu.joblib")
-    save_object(y_train, "models/y_train_processed_gpu.joblib")
+    X_train_processed = run_pipeline_gpu(X_train, smart_columns, "train")
+
+    # Prepare feature columns
+    feature_columns = [col for col in df.columns if col in smart_columns]
+    feature_columns.extend([col for col in df.columns if 'critical' in col or 'sum' in col or 'high' in col])
+
+    # Handle class imbalance
+    X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train[feature_columns], y_train, strategy='smote')
 
     print("Processing test data...")
     X_test_processed = run_pipeline_gpu(X_test, smart_columns, "test")
-    save_object(X_test_processed, "models/X_test_processed_gpu.joblib")
-    save_object(y_test, "models/y_test_processed_gpu.joblib")
 
     print("Processing complete")
 
     scaler = StandardScaler()
 
-    model = train_model_gpu(X_train, y_train, scaler)
+    model = train_model_gpu(X_train_balanced, y_train, scaler)
     save_model(model, "models/model_gpu.joblib")
+
+    evaluate_model(model, X_test_processed, y_test)
 
 if __name__ == "__main__":
     try:
