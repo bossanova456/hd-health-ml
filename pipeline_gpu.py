@@ -1,7 +1,8 @@
 import cudf
 import pandas as pd
+import cupy as cp
 import numpy as np
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTE as smote
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.combine import SMOTEENN
 from collections import Counter
@@ -26,7 +27,7 @@ def remove_outliers_gpu(dataframe, smart_columns, iqr_multiplier=1.5):
 
     return df
 
-def handle_class_imbalance(X, y, strategy='smote'):
+def handle_class_imbalance(X, y, smart_columns, strategy='smote'):
     print(f"Handling class imbalance: {strategy}")
     # print(f"Original class distribution: {y}")
 
@@ -41,9 +42,7 @@ def handle_class_imbalance(X, y, strategy='smote'):
 
         return X, y, class_weights
 
-    print("Converting X to pandas dataframe")
     X_pandas = X.to_pandas()
-    print(f"Converting y {y} to pandas dataframe")
     y_pandas = pd.Series(y.values.get())
 
     if strategy == 'smote':
@@ -56,10 +55,8 @@ def handle_class_imbalance(X, y, strategy='smote'):
         smoteenn = SMOTEENN(random_state=42)
         X_resampled, y_resampled = smoteenn.fit_resample(X_pandas, y_pandas)
 
-    # X_resampled = X_resampled.from_pandas(X_resampled)
-    # y_resampled = y_resampled.from_pandas(y_resampled)
-
-
+    X_resampled = X_resampled.from_pandas(X_resampled)
+    y_resampled = y_resampled.from_pandas(y_resampled)
 
     print(f"Resampled class distribution: {y_resampled}")
 

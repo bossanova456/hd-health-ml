@@ -156,17 +156,17 @@ def main(args):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
 
     # Handle class imbalance
-    X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train, y_train, strategy='smote')
+    X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train[smart_columns], y_train, strategy='smote')
 
     print("Processing training data...")
     X_train_processed = run_pipeline_gpu(X_train_balanced, smart_columns, "train")
-    save_object(X_train_processed, "models/X_train_processed.joblib")
-    save_object(y_train, "models/y_train_processed.joblib")
+    save_object(X_train_processed, "models/X_train_processed_gpu.joblib")
+    save_object(y_train, "models/y_train_processed_gpu.joblib")
 
     print("Processing test data...")
     X_test_processed = run_pipeline_gpu(X_test, smart_columns, "test")
-    save_object(X_test_processed, "models/X_test_processed.joblib")
-    save_object(y_test, "models/y_test_processed.joblib")
+    save_object(X_test_processed, "models/X_test_processed_gpu.joblib")
+    save_object(y_test, "models/y_test_processed_gpu.joblib")
 
     print("Processing complete")
 
