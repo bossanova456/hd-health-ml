@@ -55,8 +55,8 @@ def handle_class_imbalance(X, y, strategy='smote'):
         smoteenn = SMOTEENN(random_state=42)
         X_resampled, y_resampled = smoteenn.fit_resample(X_pandas, y_pandas)
 
-    X_resampled = X_resampled.from_pandas(X_resampled)
-    y_resampled = y_resampled.from_pandas(y_resampled)
+    X_resampled = cudf.from_pandas(X_resampled)
+    y_resampled = cudf.from_pandas(y_resampled)
 
     print(f"Resampled class distribution: {y_resampled}")
 
@@ -90,44 +90,3 @@ def create_features_gpu(dataframe):
         df['temp_critical'] = (df['smart_194_normalized'] < 50).astype('int8')
 
     return df
-
-def evaluate_model(model, X_test, y_test, scaler):
-    X_test_scaled = scaler.transform(X_test)
-
-    y_pred = model.predict(X_test_scaled)
-    y_pred_proba = model.predict_proba(X_test_scaled)[:,1]
-
-    # Calculate metrics
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, average='binary')
-    recall = recall_score(y_test, y_pred, average='binary')
-    f1 = f1_score(y_test, y_pred, average='binary')
-
-    # Balanced accuracy (manual calculation for cuML compatibility
-    y_test_np = y_test.to_pandas().values if hasattr(y_test, 'to_pandas') else y_test
-    y_pred_np = y_pred.to_pandas().values if hasattr(y_pred, 'to_pandas') else y_pred
-
-    tn = ((y_test_np == 0) & (y_pred_np == 0)).sum()
-    tp = ((y_test_np == 1) & (y_test_np == 1)).sum()
-    fn = ((y_test_np == 1) & (y_test_np == 0)).sum()
-    fp = ((y_test_np == 0) & (y_test_np == 1)).sum()
-
-    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
-    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
-    balanced_accuracy = (sensitivity + specificity) / 2
-
-    results = {
-        'accuracy': float(accuracy),
-        'balanced_accuracy': float(balanced_accuracy),
-        'precision': float(precision),
-        'recall': float(recall),
-        'f1': float(f1),
-        'sensitivity': float(sensitivity),
-        'specificity': float(specificity),
-    }
-
-    print("Model Performance:")
-    for metric, value in results.items():
-        print(f"{metric.replace('_', ' ').title()}: {value:.4f}")
-
-    return results, y_pred, y_pred_proba
