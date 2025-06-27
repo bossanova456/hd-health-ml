@@ -10,7 +10,7 @@ from cuml.model_selection import train_test_split
 from cuml.metrics import accuracy_score, precision_recall_curve
 from cuml.preprocessing import StandardScaler
 
-from utils import log, print_progress, save_model, save_object, load_model
+from utils import log, print_progress, save_model, save_object, load_model, load_object
 from pipeline_gpu import remove_outliers_gpu, handle_class_imbalance, create_features_gpu
 
 def load_training_data_gpu(data_dir, columns, dtype):
@@ -151,8 +151,10 @@ def main(args):
 
     scaler = StandardScaler()
 
-    if os.file.exists("./models/model_gpu.joblib"):
+    if os.path.exists("./models/model_gpu.joblib"):
         model = load_model("./models/model_gpu.joblib")
+        X_test = load_object("./models/X_test.joblib")
+        y_test = load_object("./models/y_test.joblib")
     else:
         df = load_training_data_gpu("./data/data_Q4_2024/", columns, dtype)
         df_processed = run_pipeline_gpu(df, smart_columns)
@@ -175,6 +177,8 @@ def main(args):
 
         model = train_model_gpu(X_train_balanced, y_train_balanced, scaler)
         save_model(model, "models/model_gpu.joblib")
+        save_object(X_test, "models/X_test_gpu.joblib")
+        save_object(y_test, "models/y_test_gpu.joblib")
 
     evaluate_model(model, X_test, y_test, scaler)
 
