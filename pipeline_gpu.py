@@ -57,10 +57,12 @@ def handle_class_imbalance(X, y, strategy='smote'):
         smoteenn = SMOTEENN(random_state=42)
         X_resampled, y_resampled = smote.fit_resample(X_pandas, y_pandas)
 
-    X_resampled = X_resampled.from_pandas(X_resampled)
-    y_resampled = y_resampled.from_pandas(y_resampled)
+    # X_resampled = X_resampled.from_pandas(X_resampled)
+    # y_resampled = y_resampled.from_pandas(y_resampled)
 
-    print(f"Resampled class distribution: {Counter(y_resampled.to_pandas())}")
+    
+
+    print(f"Resampled class distribution: {Counter(y_resampled)}")
 
     return X_resampled, y_resampled, None
 
