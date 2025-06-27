@@ -41,7 +41,9 @@ def handle_class_imbalance(X, y, strategy='smote'):
 
         return X, y, class_weights
 
-    X_pandas = pd.DataFrame(X.to_cupy())
+    print("Converting X to pandas dataframe")
+    X_pandas = X.to_pandas()
+    print("Converting y to pandas dataframe")
     y_pandas = pd.DataFrame(y.to_cupy())
 
     if strategy == 'smote':
