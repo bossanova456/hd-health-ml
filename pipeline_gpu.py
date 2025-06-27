@@ -27,7 +27,7 @@ def remove_outliers_gpu(dataframe, smart_columns, iqr_multiplier=1.5):
 
     return df
 
-def handle_class_imbalance(X, y, smart_columns, strategy='smote'):
+def handle_class_imbalance(X, y, strategy='smote'):
     print(f"Handling class imbalance: {strategy}")
     # print(f"Original class distribution: {y}")
 
