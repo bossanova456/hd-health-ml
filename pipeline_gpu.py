@@ -41,8 +41,11 @@ def handle_class_imbalance(X, y, strategy='smote'):
 
         return X, y, class_weights
 
-    X_pandas = X.to_pandas()
-    y_pandas = y.to_pandas()
+    # X_pandas = X.to_pandas()
+    # y_pandas = y.to_pandas()
+
+    X_pandas = X.copy()
+    y_pandas = y.copy()
 
     if strategy == 'smote':
         smote = SMOTE(random_state=42, n_jobs=-1)
