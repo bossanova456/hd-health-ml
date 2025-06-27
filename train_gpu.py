@@ -145,18 +145,22 @@ def main(args):
 
     df = load_training_data_gpu("./data/data_Q4_2024/", columns, dtype)
 
+    # Prepare feature columns
+    feature_columns = [col for col in df.columns if col in smart_columns]
+
     print("Splitting dataset...")
     X = df[columns[1:]]
     y = df['failure']
 
+    del df
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+    del X, y
 
     print("Processing training data...")
     X_train_processed = run_pipeline_gpu(X_train, smart_columns, "train")
 
-    # Prepare feature columns
-    feature_columns = [col for col in df.columns if col in smart_columns]
-    feature_columns.extend([col for col in df.columns if 'critical' in col or 'sum' in col or 'high' in col])
+    feature_columns.extend([col for col in X_train_processed.columns if 'critical' in col or 'sum' in col or 'high' in col])
 
     # Handle class imbalance
     X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train_processed[feature_columns], y_train, strategy='smote')
