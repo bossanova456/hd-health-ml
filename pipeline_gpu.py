@@ -44,7 +44,7 @@ def handle_class_imbalance(X, y, strategy='smote'):
     print("Converting X to pandas dataframe")
     X_pandas = X.to_pandas()
     print(f"Converting y {y} to pandas dataframe")
-    y_pandas = pd.DataFrame(y.get())
+    y_pandas = pd.Series(y.values.get())
 
     if strategy == 'smote':
         smote = SMOTE(random_state=42)
@@ -54,7 +54,7 @@ def handle_class_imbalance(X, y, strategy='smote'):
         X_resampled, y_resampled = undersampler.fit_resample(X_pandas, y_pandas)
     elif strategy == 'smoteenn':
         smoteenn = SMOTEENN(random_state=42)
-        X_resampled, y_resampled = smote.fit_resample(X_pandas, y_pandas)
+        X_resampled, y_resampled = smoteenn.fit_resample(X_pandas, y_pandas)
 
     # X_resampled = X_resampled.from_pandas(X_resampled)
     # y_resampled = y_resampled.from_pandas(y_resampled)
