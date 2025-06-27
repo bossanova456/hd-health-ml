@@ -144,29 +144,19 @@ def main(args):
     }
 
     df = load_training_data_gpu("./data/data_Q4_2024/", columns, dtype)
-
-    # Prepare feature columns
-    feature_columns = [col for col in df.columns if col in smart_columns]
-
-    print("Splitting dataset...")
-    X = df[columns[1:]]
-    y = df['failure']
-
+    df_processed = run_pipeline_gpu(df, smart_columns)
     del df
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
-    del X, y
+    # Prepare feature columns
+    feature_columns = [col for col in df_processed.columns if col in smart_columns]
+    feature_columns.extend([col for col in df_processed.columns if 'critical' in col or 'sum' in col or 'high' in col])
 
-    print("Processing training data...")
-    X_train_processed = run_pipeline_gpu(X_train, smart_columns, "train")
-
-    feature_columns.extend([col for col in X_train_processed.columns if 'critical' in col or 'sum' in col or 'high' in col])
+    print("Splitting dataset...")
+    X_train, X_test, y_train, y_test = train_test_split(df_processed[columns[1:]], df_processed['failure'], test_size=0.20, random_state=42)
 
     # Handle class imbalance
-    X_train_balanced, y_train_balanced, _ = handle_class_imbalance(X_train_processed[feature_columns], y_train, strategy='smote')
-
-    print("Processing test data...")
-    X_test_processed = run_pipeline_gpu(X_test, smart_columns, "test")
+    print("Handling class imbalance...")
+    X_train_balanced, y_train_balanced, _ = handle_class_imbalance(df_processed[feature_columns], y_train, strategy='smote')
 
     print("Processing complete")
 
@@ -175,7 +165,7 @@ def main(args):
     model = train_model_gpu(X_train_balanced, y_train, scaler)
     save_model(model, "models/model_gpu.joblib")
 
-    evaluate_model(model, X_test_processed, y_test)
+    evaluate_model(model, X_test, y_test, scaler)
 
 if __name__ == "__main__":
     try:
