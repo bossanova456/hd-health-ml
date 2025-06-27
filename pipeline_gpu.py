@@ -41,8 +41,8 @@ def handle_class_imbalance(X, y, strategy='smote'):
 
         return X, y, class_weights
 
-    X_pandas = pd.DataFrame(X.get())
-    y_pandas = pd.DataFrame(y.get())
+    X_pandas = pd.DataFrame(X)
+    y_pandas = pd.DataFrame(y)
 
     if strategy == 'smote':
         smote = SMOTE(random_state=42)
