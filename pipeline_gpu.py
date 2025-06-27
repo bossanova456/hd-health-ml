@@ -23,12 +23,12 @@ def remove_outliers_gpu(dataframe, smart_columns, iqr_multiplier=1.5):
         lower = Q1 - iqr_multiplier * IQR
         upper = Q3 + iqr_multiplier * IQR
 
-        df = df[(df[col] > lower) & (df[col] < upper)]
+        df = df[(df[col] >= lower) & (df[col] <= upper)]
 
     return df
 
 def handle_class_imbalance(X, y, strategy='smote'):
-    print(f"Handling class imbalance: {strategy}")
+    print(f"Executing class imbalance strategy: {strategy}")
     # print(f"Original class distribution: {y}")
 
     if strategy == 'class_weight':
