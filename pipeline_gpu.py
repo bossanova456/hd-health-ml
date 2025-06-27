@@ -44,8 +44,8 @@ def handle_class_imbalance(X, y, strategy='smote'):
     # X_pandas = X.to_pandas()
     # y_pandas = y.to_pandas()
 
-    X_pandas = X.copy()
-    y_pandas = y.copy()
+    X_pandas = X
+    y_pandas = y
 
     if strategy == 'smote':
         smote = SMOTE(random_state=42, n_jobs=-1)
@@ -62,7 +62,7 @@ def handle_class_imbalance(X, y, strategy='smote'):
 
 
 
-    print(f"Resampled class distribution: {Counter(y_resampled)}")
+    print(f"Resampled class distribution: {y_resampled}")
 
     return X_resampled, y_resampled, None
 
