@@ -1,14 +1,15 @@
 import os, sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import cudf
 import cupy as cp
 import numpy as np
 import pandas as pd
 from cuml.ensemble import RandomForestClassifier
-from cuml.model_selection import train_test_split
+from cuml.model_selection import train_test_split as train_test_split_gpu
 from cuml.metrics import accuracy_score, precision_recall_curve
 from cuml.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split as train_test_split_cpu
 
 from utils import log, print_progress, save_model, save_object, load_model, load_object
 from pipeline_gpu import remove_outliers_gpu, handle_class_imbalance, create_features_gpu
@@ -47,25 +48,64 @@ def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
 
     return df
 
-def train_model_gpu(X_train, y_train, scaler, class_weights=None):
+def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=None):
+
     # TODO: add switch to implement multiple models
     start_time = datetime.now()
 
-    rf = RandomForestClassifier(
-        n_estimators=500,
-        max_depth=15,
-        min_samples_split=5,
-        min_samples_leaf=2,
-        random_state=42,
-        n_streams=4
-    )
+    n_rows = X_train.shape[0]
+    row_count = 0
+    models = []
 
-    X_train_scaled = scaler.fit_transform(X_train)
-    rf.fit(X_train_scaled, y_train)
+    if chunk_size > 0:
+        # If chunking, assume data is loaded into CPU
+        # TODO: perform check to ensure in CPU?
 
-    print(f"Training completed in {(datetime.now() - start_time)}")
+        # Init progress bar
+        print_progress(0, n_rows, prefix=f"Time elapsed: {timedelta(0)}", suffix=f"0 / {n_rows}")
 
-    return rf
+        while row_count < n_rows:
+            rf = RandomForestClassifier(
+                n_estimators=500,
+                max_depth=15,
+                min_samples_split=5,
+                min_samples_leaf=2,
+                random_state=42,
+                n_streams=4
+            )
+
+            chunk_size_cur = X_train.shape[0] if row_count + chunk_size >= n_rows else row_count + chunk_size
+            X_chunk = cudf.from_pandas(X_train.iloc[row_count:chunk_size_cur])
+            y_chunk = cudf.from_pandas(y_train.iloc[row_count:chunk_size_cur])
+
+            X_chunk_scaled = scaler.fit_transform(X_chunk)
+            rf.fit(X_chunk_scaled, y_chunk)
+            models.append(rf)
+
+            row_count += chunk_size_cur
+            del X_chunk, y_chunk, X_chunk_scaled
+            print_progress(row_count, n_rows, prefix=f"Time elapsed: {datetime.now() - start_time}", suffix=f"{row_count} / {n_rows}")
+
+        print(f"Training completed in {datetime.now() - start_time}")
+
+        return models
+    else:
+        # Since no chunking, assume data is already loaded into GPU
+        # TODO: perform check to ensure in GPU?
+
+        rf = RandomForestClassifier(
+            n_estimators=500,
+            max_depth=15,
+            min_samples_split=5,
+            min_samples_leaf=2,
+            random_state=42,
+            n_streams=4
+        )
+
+        X_train_scaled = scaler.fit_transform(X_train)
+        rf.fit(X_train_scaled, y_train)
+
+        return [rf]
 
 def evaluate_model(model, X_test, y_test, scaler):
     X_test_scaled = scaler.transform(X_test)
@@ -149,44 +189,51 @@ def main(args):
         'smart_198_normalized': 'float32',
     }
 
+    df = load_training_data_gpu("./data/data_Q4_2024/", columns, dtype)
+    df_processed = run_pipeline_gpu(df, smart_columns)
+    del df
+
+    # Prepare feature columns
+    feature_columns = [col for col in df_processed.columns if col in smart_columns]
+    feature_columns.extend([col for col in df_processed.columns if 'critical' in col or 'sum' in col or 'high' in col])
+
+    X = df_processed[feature_columns]
+    y = df_processed['failure']
+    del df_processed
+
+    # Handle class imbalance
+    print("Handling class imbalance...")
+    X_balanced, y_balanced, _ = handle_class_imbalance(X, y, strategy='smote')
+    del X, y
+
+    print("Processing complete")
+    print("Moving data to CPU mem...")
+    X_balanced_cpu = X_balanced.to_pandas()
+    y_balanced_cpu = pd.Series(cp.asarray(y_balanced).get())
+
+    del X_balanced, y_balanced
+
+    print("Splitting dataset...")
+    X_train_balanced_cpu, X_test_balanced_cpu, y_train_balanced_cpu, y_test_balanced_cpu = train_test_split_cpu(X_balanced_cpu, y_balanced_cpu, test_size=0.20, random_state=42)
+
+    print("Training model...")
+    # Pass in objects from CPU memory, to be loaded into GPU in chunks
+    # TODO: perform fit_scale on whole dataframe before passing into training method?
     scaler = StandardScaler()
+    chunk_size = 100000
+    models = train_model_gpu(X_train_balanced_cpu, y_train_balanced_cpu, scaler, chunk_size=chunk_size)
+    save_model(models, "models/model_gpu.joblib")
+    print("Training complete")
 
-    if os.path.exists("./models/model_gpu.joblib"):
-        model = load_model("./models/model_gpu.joblib")
-        X_test_balanced = load_object("./models/X_test_balanced_gpu.joblib")
-        y_test_balanced = load_object("./models/y_test_balanced_gpu.joblib")
-        scaler = load_object("./models/scaler_gpu.joblib")
-    else:
-        df = load_training_data_gpu("./data/data_Q4_2024/", columns, dtype)
-        df_processed = run_pipeline_gpu(df, smart_columns)
-        del df
+    X_test_balanced = cudf.from_pandas(X_test_balanced_cpu)
+    y_test_balanced = cudf.from_pandas(y_test_balanced_cpu)
 
-        # Prepare feature columns
-        feature_columns = [col for col in df_processed.columns if col in smart_columns]
-        feature_columns.extend([col for col in df_processed.columns if 'critical' in col or 'sum' in col or 'high' in col])
+    save_object(X_test_balanced, "models/X_test_balanced_gpu.joblib")
+    save_object(y_test_balanced, "models/y_test_balanced_gpu.joblib")
+    save_object(scaler, "models/scaler_gpu.joblib")
 
-        X = df_processed[feature_columns]
-        y = df_processed['failure']
-        del df_processed
-
-        # Handle class imbalance
-        print("Handling class imbalance...")
-        X_balanced, y_balanced = handle_class_imbalance(X, y, strategy='smote')
-        del X, y
-
-        print("Processing complete")
-
-        print("Splitting dataset...")
-        X_train_balanced, X_test_balanced, y_train_balanced, y_test_balanced = train_test_split(X_balanced, y_balanced, test_size=0.20, random_state=42)
-
-        print("Training model...")
-        model = train_model_gpu(X_train_balanced, y_train_balanced, scaler)
-        save_model(model, "models/model_gpu.joblib")
-        save_object(X_test_balanced, "models/X_test_balanced_gpu.joblib")
-        save_object(y_test_balanced, "models/y_test_balanced_gpu.joblib")
-        save_object(scaler, "models/scaler_gpu.joblib")
-
-    evaluate_model(model, X_test_balanced, y_test_balanced, scaler)
+    for model in models:
+        evaluate_model(model, X_test_balanced, y_test_balanced, scaler)
 
 if __name__ == "__main__":
     try:

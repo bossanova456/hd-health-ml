@@ -45,6 +45,8 @@ def handle_class_imbalance(X, y, strategy='smote'):
     X_pandas = X.to_pandas()
     y_pandas = pd.Series(cp.asarray(y).get())
 
+    del X, y
+
     if strategy == 'smote':
         smote = SMOTE(random_state=42)
         X_resampled, y_resampled = smote.fit_resample(X_pandas, y_pandas)
@@ -54,6 +56,8 @@ def handle_class_imbalance(X, y, strategy='smote'):
     elif strategy == 'smoteenn':
         smoteenn = SMOTEENN(random_state=42)
         X_resampled, y_resampled = smoteenn.fit_resample(X_pandas, y_pandas)
+
+    del X_pandas, y_pandas
 
     X_resampled = cudf.from_pandas(X_resampled)
     y_resampled = cudf.from_pandas(y_resampled)
