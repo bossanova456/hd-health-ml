@@ -123,8 +123,6 @@ def evaluate_model(model_array, X_test, y_test, scaler):
         fn += ((y_test == 1) & (y_pred == 0)).sum()
         fp += ((y_test == 0) & (y_pred == 1)).sum()
 
-    y_pred_proba = np.mean([model.predict_proba(X_test_scaled)[1] for model in model_array])
-
     # Calculate metrics
     # accuracy = accuracy_score(y_test, y_pred)
     # precision = precision_score(y_test, y_pred, average='binary')
@@ -159,7 +157,7 @@ def evaluate_model(model_array, X_test, y_test, scaler):
     for metric, value in results.items():
         print(f"{metric.replace('_', ' ').title()}: {value:.4f}")
 
-    return results, y_pred_proba
+    return results
 
 def main(args):
     columns = [
