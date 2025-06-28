@@ -107,14 +107,26 @@ def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=N
 
         return [rf]
 
-def evaluate_model(model, X_test, y_test, scaler):
+def evaluate_model(model_array, X_test, y_test, scaler):
     X_test_scaled = scaler.transform(X_test)
 
-    y_pred = model.predict(X_test_scaled)
-    y_pred_proba = model.predict_proba(X_test_scaled)[1]
+    tn = 0
+    tp = 0
+    fn = 0
+    fp = 0
+
+    for model in model_array:
+        y_pred = model.predict(X_test_scaled)
+
+        tn += ((y_test == 0) & (y_pred == 0)).sum()
+        tp += ((y_test == 1) & (y_pred == 1)).sum()
+        fn += ((y_test == 1) & (y_pred == 0)).sum()
+        fp += ((y_test == 0) & (y_pred == 1)).sum()
+
+    y_pred_proba = np.mean([model.predict_proba(X_test_scaled)[1] for model in model_array])
 
     # Calculate metrics
-    accuracy = accuracy_score(y_test, y_pred)
+    # accuracy = accuracy_score(y_test, y_pred)
     # precision = precision_score(y_test, y_pred, average='binary')
     # recall = recall_score(y_test, y_pred, average='binary')
     # f1 = f1_score(y_test, y_pred, average='binary')
@@ -123,24 +135,22 @@ def evaluate_model(model, X_test, y_test, scaler):
     # y_test_np = cudf.to_pandas(y_test) if hasattr(y_test, 'to_pandas') else y_test
     # y_pred_np = pd.Series(cp.asarray(y_pred).get()) if hasattr(y_pred, 'to_pandas') else y_pred
 
-    tn = ((y_test == 0) & (y_pred == 0)).sum()
-    tp = ((y_test == 1) & (y_pred == 1)).sum()
-    fn = ((y_test == 1) & (y_pred == 0)).sum()
-    fp = ((y_test == 0) & (y_pred == 1)).sum()
-
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+    accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
     balanced_accuracy = (sensitivity + specificity) / 2
 
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+
+    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
     results = {
         'accuracy': float(accuracy),
         'balanced_accuracy': float(balanced_accuracy),
         'precision': float(precision),
         'recall': float(recall),
-        # 'f1': float(f1),
+        'f1': float(f1),
         'sensitivity': float(sensitivity),
         'specificity': float(specificity),
     }
@@ -149,7 +159,7 @@ def evaluate_model(model, X_test, y_test, scaler):
     for metric, value in results.items():
         print(f"{metric.replace('_', ' ').title()}: {value:.4f}")
 
-    return results, y_pred, y_pred_proba
+    return results, y_pred_proba
 
 def main(args):
     columns = [
@@ -232,8 +242,7 @@ def main(args):
     save_object(y_test_balanced, "models/y_test_balanced_gpu.joblib")
     save_object(scaler, "models/scaler_gpu.joblib")
 
-    for model in models:
-        evaluate_model(model, X_test_balanced, y_test_balanced, scaler)
+    evaluate_model(models, X_test_balanced, y_test_balanced, scaler)
 
 if __name__ == "__main__":
     try:
