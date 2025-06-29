@@ -229,7 +229,7 @@ def main(args):
 
     print("Splitting dataset...")
     X_train_balanced_cpu, X_test_balanced_cpu, y_train_balanced_cpu, y_test_balanced_cpu = train_test_split_cpu(X_balanced_cpu, y_balanced_cpu, test_size=0.20, random_state=42)
-    del X_balanced_cpu, y_balanced_cpu, y_balanced_cpu
+    del X_balanced_cpu, y_balanced_cpu
 
     print("Training model...")
     # Pass in objects from CPU memory, to be loaded into GPU in chunks
