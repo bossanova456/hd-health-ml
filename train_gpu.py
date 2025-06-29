@@ -62,7 +62,7 @@ def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=N
         # TODO: perform check to ensure in CPU?
 
         # Init progress bar
-        print_progress(0, n_rows, prefix=f"Time elapsed: {timedelta(0)}", suffix=f"0 / {n_rows}")
+        print_progress(0, n_rows, prefix=f"0 / {n_rows}")
 
         while row_count < n_rows:
             rf = RandomForestClassifier(
@@ -84,7 +84,7 @@ def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=N
 
             row_count += chunk_size_cur
             del X_chunk, y_chunk, X_chunk_scaled
-            print_progress(row_count, n_rows, prefix=f"Time elapsed: {datetime.now() - start_time}", suffix=f"{row_count} / {n_rows}")
+            print_progress(row_count, n_rows, prefix=f"{row_count} / {n_rows}")
 
         print(f"Training completed in {datetime.now() - start_time}")
 
