@@ -111,8 +111,10 @@ def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
 
     # Fill NA values with 0
     # TODO: perform imputation methods instead?
-    for col in smart_columns:
-        df[col] = df[col].fillna(0)
+    # for col in smart_columns:
+    #     df[col] = df[col].fillna(0)
+    print("Performing imputation...")
+    df = time_based_imputation(df, smart_columns)
 
     # Create features
     print("Creating features...")
