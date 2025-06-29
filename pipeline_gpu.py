@@ -14,7 +14,7 @@ from utils import log, print_progress
 def remove_outliers_gpu(dataframe, smart_columns, iqr_multiplier=1.5):
     # TODO: match contamination value in CPU method?
     log_file = "outliers.log"
-    df = dataframe.copy()
+    df = cudf.from_pandas(dataframe.copy())
 
     # Operation on columns is more efficient for GPU
     for col in smart_columns:
@@ -27,11 +27,11 @@ def remove_outliers_gpu(dataframe, smart_columns, iqr_multiplier=1.5):
 
         df = df[(df[col] >= lower) & (df[col] <= upper)]
 
-    return df
+    return df.to_pandas()
 
 def create_features_gpu(dataframe):
     # TODO: utilize history to create time series features?
-    df = dataframe.copy()
+    df = cudf.from_pandas(dataframe.copy())
 
     critical_attributes = [
         'smart_5_normalized',
@@ -56,10 +56,10 @@ def create_features_gpu(dataframe):
     if 'smart_194_normalized' in df.columns:
         df['temp_critical'] = (df['smart_194_normalized'] < 50).astype('int8')
 
-    return df
+    return df.to_pandas()
 
 def time_based_imputation(dataframe, smart_columns):
-    imputed_df = dataframe.copy()
+    imputed_df = cudf.from_pandas(dataframe.copy())
 
     print(f"NaN values before imputation: {imputed_df.isnull().sum().sum()}")
 
@@ -104,14 +104,14 @@ def time_based_imputation(dataframe, smart_columns):
 
     print(f"NaN values after imputation: {imputed_df.isna().sum().sum()}")
 
-    return imputed_df
+    return imputed_df.to_pandas()
 
 def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
     if hasattr(dataframe, 'to_pandas'):
         print("Pipeline expects input dataframe to be a Pandas DataFrame - converting...")
         dataframe = dataframe.to_pandas()
 
-    df = cudf.from_pandas(dataframe.copy())
+    df = dataframe.copy()
 
     # Fill NA values with 0
     # TODO: perform imputation methods instead?
