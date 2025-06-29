@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import warnings
 
 import cudf
 import pandas as pd
@@ -77,28 +78,34 @@ def time_based_imputation(dataframe, smart_columns):
 
     # serial_numbers = imputed_df['serial_number'].unique()
     # for serial_number in serial_numbers:
+    model_medians = imputed_df[smart_columns + ['model']].groupby('model').median()
     for serial_number, group in imputed_df.groupby('serial_number'):
         if len(group) > 1:
             for col in smart_columns:
                 # Forward fill
-                imputed_df.loc[group.index, col] = imputed_df.loc[group.index, col].ffill()
+                imputed_df.loc[group.index, col].ffill(inplace=True)
 
                 # Backward fill
-                imputed_df.loc[group.index, col] = imputed_df.loc[group.index, col].bfill()
+                imputed_df.loc[group.index, col].bfill(inplace=True)
 
                 # Fill any remaining NaN values with medians for model
                 # TODO: pre-calculate medians for model numbers?
                 if imputed_df.loc[group.index, col].isna().any():
                     model = group['model'].iloc[0]
-                    model_median = dataframe[dataframe['model'] == model][col].median()
-                    imputed_df.loc[group.index, col] = imputed_df.loc[group.index, col].fillna(model_median)
+                    model_median = model_medians.loc[model]
+                    imputed_df.loc[group.index, col].fillna(model_median, inplace=True)
 
         progress += group.shape[0]
         mod += group.shape[0]
 
         if mod >= 10000 or progress == 0:
             now = datetime.now()
-            print_progress(mod, total, prefix=f"{now - start} | {now - cur_time} - {progress} / {total}", decimals=2)
+            print_progress(
+                progress,
+                total,
+                prefix=f"{str(now - start).split('.')[0]} | {str(now - cur_time).split('.')[0]} - {progress} / {total}",
+                decimals=2
+            )
             cur_time = now
             mod = mod % 10000
 
@@ -107,6 +114,8 @@ def time_based_imputation(dataframe, smart_columns):
     return imputed_df.to_pandas()
 
 def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
+    warnings.filterwarnings('ignore', category=RuntimeWarning)
+
     if hasattr(dataframe, 'to_pandas'):
         print("Pipeline expects input dataframe to be a Pandas DataFrame - converting...")
         dataframe = dataframe.to_pandas()
@@ -114,7 +123,6 @@ def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
     df = dataframe.copy()
 
     # Fill NA values with 0
-    # TODO: perform imputation methods instead?
     # for col in smart_columns:
     #     df[col] = df[col].fillna(0)
     print("Performing imputation...")

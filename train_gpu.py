@@ -210,22 +210,24 @@ def main(args):
 
     dtype = {
         'failure': 'bool',
-        'smart_1_normalized': 'float32',
-        'smart_2_normalized': 'float32',
-        'smart_3_normalized': 'float32',
-        'smart_4_normalized': 'float32',
-        'smart_5_normalized': 'float32',
-        'smart_9_normalized': 'float32',
-        'smart_10_normalized': 'float32',
-        'smart_12_normalized': 'float32',
-        'smart_187_normalized': 'float32',
-        'smart_188_normalized': 'float32',
-        'smart_197_normalized': 'float32',
-        'smart_198_normalized': 'float32',
+        'smart_1_normalized': 'int32',
+        'smart_2_normalized': 'int32',
+        'smart_3_normalized': 'int32',
+        'smart_4_normalized': 'int32',
+        'smart_5_normalized': 'int32',
+        'smart_9_normalized': 'int32',
+        'smart_10_normalized': 'int32',
+        'smart_12_normalized': 'int32',
+        'smart_187_normalized': 'int32',
+        'smart_188_normalized': 'int32',
+        'smart_197_normalized': 'int32',
+        'smart_198_normalized': 'int32',
     }
 
     df = load_training_data_gpu("./data/data_Q4_2024/", columns, dtype)
+    df = df.to_pandas()
     df_processed = run_pipeline_gpu(df, smart_columns)
+    df_processed = cudf.from_pandas(df_processed)
     del df
 
     # Prepare feature columns
