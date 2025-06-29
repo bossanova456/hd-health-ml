@@ -75,9 +75,9 @@ def time_based_imputation(dataframe, smart_columns):
     print_progress(0, total, prefix=f"{timedelta(0)} | {timedelta(0)} - {progress} / {total}",
                    decimals=2)  # Init progress bar
 
-    serial_numbers = imputed_df['serial_number'].unique()
-    for serial_number in serial_numbers:
-        group = imputed_df[imputed_df['serial_number'] == serial_number]
+    # serial_numbers = imputed_df['serial_number'].unique()
+    # for serial_number in serial_numbers:
+    for serial_number, group in imputed_df.groupby('serial_number'):
         if len(group) > 1:
             for col in smart_columns:
                 # Forward fill
