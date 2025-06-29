@@ -12,7 +12,7 @@ from cuml.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split as train_test_split_cpu
 
 from utils import log, print_progress, save_model, save_object, load_model, load_object
-from pipeline_gpu import remove_outliers_gpu, handle_class_imbalance, create_features_gpu
+from pipeline_gpu import run_pipeline_gpu
 
 def load_training_data_gpu(data_dir, columns, dtype):
     training_files = os.listdir(data_dir)
@@ -30,23 +30,44 @@ def load_training_data_gpu(data_dir, columns, dtype):
 
     return df
 
-def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
-    df = dataframe.copy()
+def handle_class_imbalance(X, y, strategy='smote'):
+    print(f"Executing class imbalance strategy: {strategy}")
+    # print(f"Original class distribution: {y}")
 
-    # Fill NA values with 0
-    # TODO: perform imputation methods instead?
-    for col in smart_columns:
-        df[col] = df[col].fillna(0)
+    if strategy == 'class_weight':
+        unique_classes = y.unique()
+        total_samples = len(y)
+        class_weights = {}
 
-    # Create features
-    print("Creating features...")
-    df = create_features_gpu(df)
+        for cls in unique_classes:
+            class_count = (y == cls).sum()
+            class_weights[cls] = total_samples / (len(unique_classes) * class_count)
 
-    # Remove outliers
-    print("Removing outliers...")
-    df = remove_outliers_gpu(df, smart_columns)
+        return X, y, class_weights
 
-    return df
+    X_pandas = X.to_pandas()
+    y_pandas = pd.Series(cp.asarray(y).get())
+
+    del X, y
+
+    if strategy == 'smote':
+        smote = SMOTE(random_state=42)
+        X_resampled, y_resampled = smote.fit_resample(X_pandas, y_pandas)
+    elif strategy == 'undersample':
+        undersampler = RandomUnderSampler(random_state=42)
+        X_resampled, y_resampled = undersampler.fit_resample(X_pandas, y_pandas)
+    elif strategy == 'smoteenn':
+        smoteenn = SMOTEENN(random_state=42)
+        X_resampled, y_resampled = smoteenn.fit_resample(X_pandas, y_pandas)
+
+    del X_pandas, y_pandas
+
+    X_resampled = cudf.from_pandas(X_resampled)
+    y_resampled = cudf.from_pandas(y_resampled)
+
+    print(f"Resampled class distribution: {y_resampled}")
+
+    return X_resampled, y_resampled, None
 
 def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=None):
 
