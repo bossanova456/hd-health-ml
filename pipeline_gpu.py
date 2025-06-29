@@ -107,7 +107,11 @@ def time_based_imputation(dataframe, smart_columns):
     return imputed_df
 
 def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
-    df = dataframe.copy()
+    if hasattr(dataframe, 'to_pandas'):
+        print("Pipeline expects input dataframe to be a Pandas DataFrame - converting...")
+        dataframe = dataframe.to_pandas()
+
+    df = cudf.from_pandas(dataframe.copy())
 
     # Fill NA values with 0
     # TODO: perform imputation methods instead?
