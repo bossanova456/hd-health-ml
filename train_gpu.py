@@ -74,9 +74,9 @@ def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=N
                 n_streams=4
             )
 
-            chunk_size_cur = X_train.shape[0] if row_count + chunk_size >= n_rows else row_count + chunk_size
-            X_chunk = cudf.from_pandas(X_train.iloc[row_count:chunk_size_cur])
-            y_chunk = cudf.from_pandas(y_train.iloc[row_count:chunk_size_cur])
+            chunk_size_cur = n_rows - row_count if row_count + chunk_size >= n_rows else chunk_size
+            X_chunk = cudf.from_pandas(X_train.iloc[row_count:row_count + chunk_size_cur])
+            y_chunk = cudf.from_pandas(y_train.iloc[row_count:row_count + chunk_size_cur])
 
             X_chunk_scaled = scaler.fit_transform(X_chunk)
             rf.fit(X_chunk_scaled, y_chunk)
@@ -229,6 +229,7 @@ def main(args):
 
     print("Splitting dataset...")
     X_train_balanced_cpu, X_test_balanced_cpu, y_train_balanced_cpu, y_test_balanced_cpu = train_test_split_cpu(X_balanced_cpu, y_balanced_cpu, test_size=0.20, random_state=42)
+    del X_balanced_cpu, y_balanced_cpu, y_balanced_cpu
 
     print("Training model...")
     # Pass in objects from CPU memory, to be loaded into GPU in chunks
@@ -240,7 +241,9 @@ def main(args):
     print("Training complete")
 
     X_test_balanced = cudf.from_pandas(X_test_balanced_cpu)
+    del X_test_balanced_cpu
     y_test_balanced = cudf.from_pandas(y_test_balanced_cpu)
+    del y_test_balanced_cpu
 
     save_object(X_test_balanced, "models/X_test_balanced_gpu.joblib")
     save_object(y_test_balanced, "models/y_test_balanced_gpu.joblib")
