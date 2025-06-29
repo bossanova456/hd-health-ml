@@ -108,12 +108,15 @@ def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=N
         return [rf]
 
 def evaluate_model(model_array, X_test, y_test, scaler):
-    X_test_scaled = scaler.transform(X_test)
+    X_test_scaled = scaler.fit_transform(X_test)
 
     tn = 0
     tp = 0
     fn = 0
     fp = 0
+
+    chunk_num = 0
+    print_progress(0, len(model_array), prefix=f"Evaluated chunk 0 of {len(model_array)}")
 
     for model in model_array:
         y_pred = model.predict(X_test_scaled)
@@ -122,6 +125,9 @@ def evaluate_model(model_array, X_test, y_test, scaler):
         tp += ((y_test == 1) & (y_pred == 1)).sum()
         fn += ((y_test == 1) & (y_pred == 0)).sum()
         fp += ((y_test == 0) & (y_pred == 1)).sum()
+
+        chunk_num += 1
+        print_progress(chunk_num, len(model_array), prefix=f"Evaluated chunk {chunk_num} of {len(model_array)}")
 
     # Calculate metrics
     # accuracy = accuracy_score(y_test, y_pred)
