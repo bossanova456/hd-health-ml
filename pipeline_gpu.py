@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import cudf
 import pandas as pd
 import cupy as cp
@@ -55,6 +57,54 @@ def create_features_gpu(dataframe):
         df['temp_critical'] = (df['smart_194_normalized'] < 50).astype('int8')
 
     return df
+
+def time_based_imputation(dataframe, smart_columns):
+    imputed_df = dataframe.copy()
+
+    print(f"NaN values before imputation: {imputed_df.isnull().sum().sum()}")
+
+    imputed_df = imputed_df.sort_values(by=['serial_number', 'date'])
+
+    progress = 0
+    mod = 0
+    total = imputed_df.shape[0]
+    start = datetime.now()
+    cur_time = start
+
+    print(f"Start time: {start.strftime('%Y-%m-%d %H:%M:%S')}")
+    print_progress(0, total, prefix=f"{timedelta(0)} | {timedelta(0)} - {progress} / {total}",
+                   decimals=2)  # Init progress bar
+
+    serial_numbers = imputed_df['serial_number'].unique()
+    for serial_number in serial_numbers:
+        group = imputed_df[imputed_df['serial_number'] == serial_number]
+        if len(group) > 1:
+            for col in smart_columns:
+                # Forward fill
+                imputed_df.loc[group.index, col] = imputed_df.loc[group.index, col].ffill()
+
+                # Backward fill
+                imputed_df.loc[group.index, col] = imputed_df.loc[group.index, col].bfill()
+
+                # Fill any remaining NaN values with medians for model
+                # TODO: pre-calculate medians for model numbers?
+                if imputed_df.loc[group.index, col].isna().any():
+                    model = group['model'].iloc[0]
+                    model_median = dataframe[dataframe['model'] == model][col].median()
+                    imputed_df.loc[group.index, col] = imputed_df.loc[group.index, col].fillna(model_median)
+
+        progress += group.shape[0]
+        mod += group.shape[0]
+
+        if mod >= 10000 or progress == 0:
+            now = datetime.now()
+            print_progress(mod, total, prefix=f"{now - start} | {now - cur_time} - {progress} / {total}", decimals=2)
+            cur_time = now
+            mod = mod % 10000
+
+    print(f"NaN values after imputation: {imputed_df.isna().sum().sum()}")
+
+    return imputed_df
 
 def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
     df = dataframe.copy()
