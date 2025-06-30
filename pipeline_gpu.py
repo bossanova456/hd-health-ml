@@ -76,21 +76,23 @@ def time_based_imputation(dataframe, smart_columns):
     print_progress(0, total, prefix=f"{timedelta(0)} | {timedelta(0)} - {progress} / {total}",
                    decimals=2)  # Init progress bar
 
-    # serial_numbers = imputed_df['serial_number'].unique()
-    # for serial_number in serial_numbers:
     model_medians = imputed_df[smart_columns + ['model']].groupby('model').median()
+
+    na_mask = imputed_df[smart_columns + ['serial_number']].groupby('serial_number').count() == 0
+
     for serial_number, group in imputed_df.groupby('serial_number'):
+        # TODO: use mask to only get groups that have length greater than 1
         if len(group) > 1:
             for col in smart_columns:
-                # Forward fill
-                imputed_df.loc[group.index, col].ffill(inplace=True)
+                if ~na_mask.loc[serial_number][col]:
+                    # Forward fill
+                    imputed_df.loc[group.index, col].ffill(inplace=True)
 
-                # Backward fill
-                imputed_df.loc[group.index, col].bfill(inplace=True)
+                    # Backward fill
+                    imputed_df.loc[group.index, col].bfill(inplace=True)
 
                 # Fill any remaining NaN values with medians for model
-                # TODO: pre-calculate medians for model numbers?
-                if imputed_df.loc[group.index, col].isna().any():
+                else:
                     model = group['model'].iloc[0]
                     model_median = model_medians.loc[model]
                     imputed_df.loc[group.index, col].fillna(model_median, inplace=True)
