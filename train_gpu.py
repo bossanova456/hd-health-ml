@@ -69,7 +69,7 @@ def handle_class_imbalance(X, y, strategy='smote'):
 
     return X_resampled, y_resampled, None
 
-def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=None):
+def train_model_gpu(X_train, y_train, chunk_size=100000, class_weights=None):
 
     # TODO: add switch to implement multiple models
     start_time = datetime.now()
@@ -99,12 +99,11 @@ def train_model_gpu(X_train, y_train, scaler, chunk_size=100000, class_weights=N
             X_chunk = cudf.from_pandas(X_train.iloc[row_count:row_count + chunk_size_cur])
             y_chunk = cudf.from_pandas(y_train.iloc[row_count:row_count + chunk_size_cur])
 
-            X_chunk_scaled = scaler.fit_transform(X_chunk)
-            rf.fit(X_chunk_scaled, y_chunk)
+            rf.fit(X_chunk, y_chunk)
             models.append(rf)
 
             row_count += chunk_size_cur
-            del X_chunk, y_chunk, X_chunk_scaled
+            del X_chunk, y_chunk
             print_progress(row_count, n_rows, prefix=f"{row_count} / {n_rows}")
 
         print(f"Training completed in {datetime.now() - start_time}")
@@ -254,16 +253,23 @@ def main(args):
     X_train_balanced_cpu, X_test_balanced_cpu, y_train_balanced_cpu, y_test_balanced_cpu = train_test_split_cpu(X_balanced_cpu, y_balanced_cpu, test_size=0.20, random_state=42)
     del X_balanced_cpu, y_balanced_cpu
 
-    print("Training model...")
-    # Pass in objects from CPU memory, to be loaded into GPU in chunks
+    print("Scaling training data...")
     # TODO: perform fit_scale on whole dataframe before passing into training method?
     scaler = StandardScaler()
+    X_train_balanced_scaled_cpu = scaler.fit_transform(X_train_balanced_cpu)
+    del X_train_balanced_cpu
+    X_test_balanced_scaled_cpu = scaler.transform(X_test_balanced_cpu)
+    del X_test_balanced_cpu
+
+    print("Training model...")
+    # Pass in objects from CPU memory, to be loaded into GPU in chunks
+
     chunk_size = 100000
-    models = train_model_gpu(X_train_balanced_cpu, y_train_balanced_cpu, scaler, chunk_size=chunk_size)
+    models = train_model_gpu(X_train_balanced_scaled_cpu, y_train_balanced_cpu, chunk_size=chunk_size)
     save_model(models, "models/model_gpu.joblib")
     print("Training complete")
 
-    X_test_balanced = cudf.from_pandas(X_test_balanced_cpu)
+    X_test_balanced = cudf.from_pandas(X_test_balanced_scaled_cpu)
     del X_test_balanced_cpu
     y_test_balanced = cudf.from_pandas(y_test_balanced_cpu)
     del y_test_balanced_cpu

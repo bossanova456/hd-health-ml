@@ -78,13 +78,15 @@ def time_based_imputation(dataframe, smart_columns):
 
     model_medians = imputed_df[smart_columns + ['model']].groupby('model').median()
 
-    na_mask = imputed_df[smart_columns + ['serial_number']].groupby('serial_number').count() == 0
+    nan_mask = imputed_df[smart_columns + ['serial_number']].groupby('serial_number').count() == 0
 
     for serial_number, group in imputed_df.groupby('serial_number'):
         # TODO: use mask to only get groups that have length greater than 1
         if len(group) > 1:
             for col in smart_columns:
-                if ~na_mask.loc[serial_number][col]:
+                # TODO: have another mask df for serial nums with between one and all NaN values to avoid
+                #       performing calculations on columns with no NaN values
+                if ~nan_mask.loc[serial_number][col]:
                     # Forward fill
                     imputed_df.loc[group.index, col].ffill(inplace=True)
 
@@ -100,7 +102,7 @@ def time_based_imputation(dataframe, smart_columns):
         progress += group.shape[0]
         mod += group.shape[0]
 
-        if mod >= 10000 or progress == 0:
+        if mod >= 10000:
             now = datetime.now()
             print_progress(
                 progress,
@@ -110,6 +112,11 @@ def time_based_imputation(dataframe, smart_columns):
             )
             cur_time = now
             mod = mod % 10000
+
+    del nan_mask, model_medians
+
+    print_progress(progress, total, prefix=f"{timedelta(0)} | {timedelta(0)} - {progress} / {total}",
+                   decimals=2)
 
     print(f"NaN values after imputation: {imputed_df.isna().sum().sum()}")
 
