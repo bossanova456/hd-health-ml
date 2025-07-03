@@ -80,6 +80,15 @@ def attribute_based_imputation(dataframe, smart_columns):
             mask = imputed_df['model'] == model & imputed_df['smart_194_normalized'].isna()
             imputed_df.loc[mask, 'smart_194_normalized'] = model_medians.loc[model, 'smart_194_normalized']
 
+    progress = 0
+    mod = 0
+    total = imputed_df.shape[0] * 2     # rows * columns in loop
+    start = datetime.now()
+    cur_time = start
+
+    print(f"Start time: {start.strftime('%Y-%m-%d %H:%M:%S')}")
+    print_progress(0, total, prefix=f"{timedelta(0)} | {timedelta(0)} - {progress} / {total}",
+                   decimals=2)  # Init progress bar
     for col in ['smart_3_normalized', 'smart_4_normalized']:
         if col in smart_columns:
             for serial, group in imputed_df.groupby('serial_number'):
@@ -88,6 +97,23 @@ def attribute_based_imputation(dataframe, smart_columns):
                     model = group['model'].iloc[0]
                     model_median = model_medians.loc[model, col]
                     imputed_df.loc[mask, col] = model_median
+
+                mod += group.shape[0]
+                progress += group.shape[0]
+
+                if mod >= 100000:
+                    now = datetime.now()
+                    print_progress(
+                        progress,
+                        total,
+                        prefix=f"{str(now - start).split('.')[0]} | {str(now - cur_time).split('.')[0]} - {progress} / {total}",
+                        decimals=2
+                    )
+                    cur_time = now
+                    mod = mod % 10000
+
+    print_progress(progress, total, prefix=f"{timedelta(0)} | {timedelta(0)} - {progress} / {total}",
+        decimals=2)
 
     return imputed_df.to_pandas()
 
