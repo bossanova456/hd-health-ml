@@ -59,10 +59,40 @@ def create_features_gpu(dataframe):
 
     return df.to_pandas()
 
-def time_based_imputation(dataframe, smart_columns):
+def attribute_based_imputation(dataframe, smart_columns):
     imputed_df = cudf.from_pandas(dataframe.copy())
 
-    print(f"NaN values before imputation: {imputed_df.isnull().sum().sum()}")
+    # Reallocated sectors
+    # Zero means no bad sectors - only replace when indicated by other error attributes
+    if 'smart_5_normalized' in smart_columns:
+        mask = ((imputed_df['smart_5_normalized'] == 0) &
+                ((imputed_df['smart_197_normalized'] > 0) |
+                 (imputed_df['smart_198_normalized'] > 0)))
+
+        # Update with small non-zero value to indicate issues
+        imputed_df.loc[mask] = 1
+
+    # Compute model medians for next set of imputations
+    model_medians = imputed_df['smart_3_normalized', 'smart_4_normalized', 'smart_194_normalized', 'model'].groupby('model').median()
+
+    if 'smart_194_normalized' in smart_columns:
+        for model, group in imputed_df.groupby('model'):
+            mask = imputed_df['model'] == model & imputed_df['smart_194_normalized'].isna()
+            imputed_df.loc[mask, 'smart_194_normalized'] = model_medians.loc[model, 'smart_194_normalized']
+
+    for col in ['smart_3_normalized', 'smart_4_normalized']:
+        if col in smart_columns:
+            for serial, group in imputed_df.groupby('serial_number'):
+                mask = imputed_df['serial_number'] == serial & imputed_df[col].isna()
+                if group[col].notna().any():
+                    model = group['model'].iloc[0]
+                    model_median = model_medians.loc[model, col]
+                    imputed_df.loc[mask, col] = model_median
+
+    return imputed_df.to_pandas()
+
+def time_based_imputation(dataframe, smart_columns):
+    imputed_df = cudf.from_pandas(dataframe.copy())
 
     imputed_df = imputed_df.sort_values(by=['serial_number', 'date'])
 
@@ -118,8 +148,6 @@ def time_based_imputation(dataframe, smart_columns):
     print_progress(progress, total, prefix=f"{timedelta(0)} | {timedelta(0)} - {progress} / {total}",
                    decimals=2)
 
-    print(f"NaN values after imputation: {imputed_df.isna().sum().sum()}")
-
     return imputed_df.to_pandas()
 
 def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
@@ -134,8 +162,15 @@ def run_pipeline_gpu(dataframe, smart_columns, model_name="model"):
     # Fill NA values with 0
     # for col in smart_columns:
     #     df[col] = df[col].fillna(0)
-    print("Performing imputation...")
+    print(f"NaN values before imputation: {df.isnull().sum().sum()}")
+
+    print("Performing attribute-based imputation...")
+    df = attribute_based_imputation(df, smart_columns)
+
+    print("Performing time-based imputation...")
     df = time_based_imputation(df, smart_columns)
+
+    print(f"NaN values after imputation: {imputed_df.isna().sum().sum()}")
 
     # Create features
     print("Creating features...")
